@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "Robotat-ESP8266",
+			"path": "ESP8266/Robotat-ESP8266"
+		},
+		{
+			"name": "Robotat-ESP32",
+			"path": "ESP32/Robotat-ESP32"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"ledc.h": "c"
+		}
+	}
+}
