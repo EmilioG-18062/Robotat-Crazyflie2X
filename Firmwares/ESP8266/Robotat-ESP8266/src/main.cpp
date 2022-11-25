@@ -8,98 +8,175 @@
  * Robotat ESP8266 bridge firmware
  */
 
+/** Handles incoming JSON messages and transform
+ *  them to CPX format then transmits via UART 
+ *  to a Crazyflie
+ */
+
 // ============================================================================
 // LIBRERIAS
 // ============================================================================
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <espnow.h>
+#include <ArduinoJson.h>
 
-// ============================================================================
+// ==============================================
 // VARIABLES
-// ============================================================================
+// ==============================================
+#define RSV     B00000000
+#define START   0xFF
+#define STM32   B00000001
+#define ESP32   B00010000
 
-// REPLACE WITH THE MAC Address of your receiver 
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+#define POSE B00010000
+#define SETP B00010001
 
-// Define variables to store incoming readings
+uint8 LP = B01000000;
 
-// Variable to store if sending data was successful
-String success;
+const char* ssid = "Robotat";
+const char* password =  "iemtbmcit116";
+const char* host = "192.168.50.200";
+const uint16_t port = 1883;
+WiFiClient client;
 
-//Structure example to send data
-//Must match the receiver structure
-struct struct_message_pose {
-    double x;
-    double y;
-    double z;
-    double qx;
-    double qy;
-    double qz;
-    double qw;
+char msj[64];
+
+struct cpxPacket {
+  int length;
+  int source;
+  int destination;
+  int function;
+  uint8_t data[100];
 };
 
-// Create a struct_message to hold incoming sensor readings
-struct_message_pose incomingReadings;
-struct_message_pose RobotatReadings;
+cpxPacket packet;
 
-// ============================================================================
+byte canSend = true;
+byte incomingByte = 1;
+byte lastByte = 0x00;
+byte packetLenght = 0x00;
+
+double pose[7] = {0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0};
+
+StaticJsonDocument<256> doc;
+
+unsigned long lastTimeSend = 0;
+bool needJson = true;
+
+// ==============================================
 // PROTOTIPO DE FUNCIONES
-// ============================================================================
-void showMac(void);
-void OnDataSent(uint8_t *mac_addr, uint8_t status);
-void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len);
-void initESPNow(void);
+// ==============================================
+void startWifi(const char* ssid, const char* password);
+void connectTCP(const char*host, const uint16_t port);
 
-// ============================================================================
+// ==============================================
 // SETUP
-// ============================================================================
+// ==============================================
 void setup() {
+  // put your setup code here, to run once:
   Serial.begin(115200);
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
 
-  initESPNow();
-  showMac();
+  packet.source = ESP32;
+  packet.destination = STM32;
+
+  startWifi(ssid, password);
+  connectTCP(host, port);
 }
 
-// ============================================================================
+// ==============================================
 // LOOP
-// ============================================================================
+// ==============================================
 void loop() {
-  // Send message via ESP-NOW
-  esp_now_send(broadcastAddress, (uint8_t *) &RobotatReadings, sizeof(RobotatReadings));
-}
+  if(canSend == true){
 
-// ============================================================================
-// FUNCIONES
-// ============================================================================
-void showMac(void) {
-  Serial.println(WiFi.macAddress());
-}
+    if(needJson == true){
+      client.print("102");
+      needJson = false;
+    } 
 
-// Callback when data is sent
-void OnDataSent(uint8_t *mac_addr, uint8_t status) {
-}
+    if (client.available() > 0){
+      //read back one line from the server
+      String line = client.readStringUntil('}');
+      needJson = true;
+      line = line + "}";
 
-// Callback when data is received
-void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-}
+      DeserializationError err = deserializeJson(doc, line);
+      if(err.code() == DeserializationError::Ok){
+        pose[0] = (double)doc["data"][0];
+        pose[1] = (double)doc["data"][1];
+        pose[2] = (double)doc["data"][2];
+        pose[3] = (double)doc["data"][3];
+        pose[4] = (double)doc["data"][4];
+        pose[5] = (double)doc["data"][5];
+        pose[6] = (double)doc["data"][6];
 
-void initESPNow(void) {
-  // Init ESP-NOW
-  if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
+        memcpy(packet.data, (uint8_t*)pose, 7*sizeof(double));
+        packet.length = sizeof(pose);
+        packet.function = POSE;
+        sendToCF(packet);
+        lastTimeSend = millis();
+        canSend = false;
+      }
+    }
+    //Pruebas
+    //memcpy(packet.data, (uint8_t*)pose, 7*sizeof(double));
+    //packet.length = sizeof(pose);
+    //packet.function = POSE;
+    //sendToCF(packet);
+    //canSend = false;
   }
 
-  esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
-  esp_now_register_send_cb(OnDataSent);
+  else{
+    incomingByte = Serial.read();
+    if(incomingByte == 0x00 && lastByte == START){
+      canSend = true;
+      Serial.println();
+      Serial.print("x = ");
+      Serial.println(pose[0]);
+      Serial.print("y = ");
+      Serial.println(pose[1]);
+      Serial.print("z = ");
+      Serial.println(pose[2]);
+    }
+    lastByte = incomingByte;
+  }
 
-  // Add peer        
-  esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
+  //if((millis() - lastTimeSend) > 100){
+  //  lastByte = 0;
+  //  incomingByte = 1;
+  //  lastTimeSend =  millis();
+  //  canSend = true;
+  //}
+}
 
-  // Register for a callback function that will be called when data is received
-  esp_now_register_recv_cb(OnDataRecv);
+// ==============================================
+// FUNCIONES
+// ==============================================
+
+void sendToCF(cpxPacket packet){
+  Serial.write(START);
+  Serial.write(packet.length+2);
+  Serial.write(RSV | LP | packet.source | packet.destination);
+  Serial.write(packet.function);
+  Serial.write(packet.data, packet.length);
+}
+
+void startWifi(const char* ssid, const char* password){
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+ 
+  Serial.println("Connected to the WiFi network");
+  Serial.println(WiFi.localIP());
+}
+
+void connectTCP(const char*host, const uint16_t port){
+  while (!client.connect(host, port)) {
+    Serial.println("Connection failed.");
+    Serial.println("Waiting 5 seconds before retrying...");
+    delay(5000);
+  }
 }
