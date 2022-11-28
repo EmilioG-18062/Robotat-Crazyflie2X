@@ -17,7 +17,7 @@ Este repositorio contiene los archivos desarrollados para la integración de un 
 └── README.md
 </pre>
 
-# Enlances
+# Enlaces
 Máquina Virtual - Modificada:
 [MV Bitcraze - Modificada](https://drive.google.com/file/d/18Oqa_0zlma20MqQFms9iviuOhDSBn1zF/view?usp=share_link)
 
