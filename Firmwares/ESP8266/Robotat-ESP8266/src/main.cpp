@@ -25,17 +25,17 @@
 // VARIABLES
 // ==============================================
 
-const char* ssid = "Robotat";
+const char* ssid     =  "Robotat";
 const char* password =  "iemtbmcit116";
-const char* host = "192.168.50.200";
-const uint16_t port = 1883;
-WiFiClient client;
+const char* host     =  "192.168.50.200";
+const uint16_t port  =  1883;
 
+WiFiClient client;
 cpxPacket packet;
 
-byte canSend = true;
+byte canSend      = true;
 byte incomingByte = 1;
-byte lastByte = 0x00;
+byte lastByte     = 0x00;
 
 StaticJsonDocument<256> doc;
 
@@ -47,7 +47,7 @@ bool needJson = true;
 void startWifi(const char* ssid, const char* password);
 void connectTCP(const char*host, const uint16_t port);
 void sendToCF(cpxPacket packet);
-void HandlePosePackage(void);
+void HandlerPosePackage(void);
 
 // ==============================================
 // SETUP
@@ -75,7 +75,7 @@ void loop() {
 
       DeserializationError err = deserializeJson(doc, line);
       if(err.code() == DeserializationError::Ok){
-        HandlePosePackage();
+        HandlerPosePackage();
         sendToCF(packet);
         canSend = false;
       }
@@ -103,7 +103,7 @@ void sendToCF(cpxPacket packet){
   Serial.write(packet.data, packet.length);
 }
 
-void HandlePosePackage(void){
+void HandlerPosePackage(void){
   double pose[7] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   pose[0] = (double)doc["data"][0];
   pose[1] = (double)doc["data"][1];
