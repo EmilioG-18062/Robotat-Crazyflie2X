@@ -2,7 +2,7 @@
 Este repositorio contiene los archivos desarrollados para la integración de un agente Crazyflie 2.0 al ecosistema Robotat de la universa Del Valle de Guatemala. Así mismo se detallan los enlaces adicionales utilizados en el proyecto.
 
 # Estructura del Repositorio
-```bash
+<pre>
 .
 ├── Firmwares                     # Scripts de los microcontroladores utilizados
 |  ├── CF2X                         # Scripts desarrollados para un Crazyflie 2.0
@@ -13,7 +13,7 @@ Este repositorio contiene los archivos desarrollados para la integración de un 
 ├── PCB Deck WiFi                 # Archivos varios sobre el diseño del Deck Wifi
 ├── docs                          # Archivos de documentación
 └── README.md
-```
+</pre>
 
 # Enlances
 Máquina Virtual:
