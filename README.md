@@ -12,6 +12,7 @@ Este repositorio contiene los archivos desarrollados para la integración de un 
 |  |  ├── interface                   # Archivos .h
 |  ├── ESP32/Robotat-ESP32          # Firmware desarrollado para un ESP32 en PlatformIO 
 |  ├── ESP8266/Robotat-ESP8266      # Firmware desarrollado para un ESP8266 en PlatformIO
+├── Frame CF2X                    # Archivos de Frame para Marker en Inventor
 ├── PCB Deck WiFi                 # Archivos varios sobre el diseño del Deck Wifi
 ├── docs                          # Archivos de documentación
 └── README.md
