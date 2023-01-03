@@ -60,7 +60,7 @@ void setup() {
 
   startWifi(ssid, password);
   connectTCP(host, port);
-  client.print("102");
+  client.print("1013");
 }
 
 // ==============================================
@@ -86,7 +86,7 @@ void loop() {
     incomingByte = Serial.read();
     if(incomingByte == 0x00 && lastByte == START){
       canSend = true;
-      client.print("102");
+      client.print("1013");
     }
     lastByte = incomingByte;
   }
